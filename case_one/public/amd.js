@@ -5,7 +5,7 @@
     Object window
 */
 
-//https://github.com/amdjs/amdjs-api/blob/master/AMD.md
+// https://github.com/amdjs/amdjs-api/blob/master/AMD.md
 (function () {
     "use strict";
 
