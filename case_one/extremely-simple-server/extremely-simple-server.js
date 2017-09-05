@@ -64,7 +64,7 @@ const requestedFileName = function (name) {
     const basename = Path.basename(name, Path.extname(name));
 
     return (/[^a-zA-Z0-9\-]/).test(basename)
-        ? `_404`
+        ? "_404"
         : basename;
 };
 
