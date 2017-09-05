@@ -1,0 +1,4 @@
+{
+    "name": "extremely-simple-server",
+    "main": "./extremely-simple-server.js"
+}
