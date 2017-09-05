@@ -1,7 +1,7 @@
 {
   "name": "case_one",
   "version": "1.0.0",
-  "description": "AMD Implementation",
+  "description": "Extremely-simple-server",
   "main": "index.js",
   "scripts": {
     "start": "NODE_PATH=./ node index.js",
