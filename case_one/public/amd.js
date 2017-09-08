@@ -59,12 +59,11 @@
     };
 
     const moduleResolver = function (path, resolve, reject) {
-        const doc = window.document;
-        const id = `module:${path.replace(/\//g, "-")}`;
         const spec = {path, promise: {resolve, reject}};
-
         resolveModule(spec);
 
+        const doc = window.document;
+        const id = `module:${path.replace(/\//g, "-")}`;
         if (!(moduleRegister(path) || doc.getElementById(id))) {
             doc.head.appendChild(moduleLoader(id, spec));
         }
