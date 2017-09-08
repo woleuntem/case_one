@@ -34,21 +34,15 @@
     /*
     * require
     */
-    const resolveModule = function _resolve({path, promise}) {
-        if (!moduleRegister(path)) {
-            window.setTimeout(_resolve, 24, {path, promise});
-            return;
-        }
-
-        promise.resolve(moduleRegister(path));
-    };
 
     const rejectModule = function (path, promise, e) {
         promise.reject(moduleRegister(path, {e}));
     };
 
-    const moduleLoader = function (id, {path, promise}) {
-        const script = window.document.createElement("script");
+    const moduleLoader = function (spec) {
+        const {doc, id, path, promise} = spec;
+        const script = doc.createElement("script");
+
         script.addEventListener(
             "error",
             partApply(rejectModule, path, promise)
@@ -58,15 +52,45 @@
         return script;
     };
 
-    const moduleResolver = function (path, resolve, reject) {
-        const spec = {path, promise: {resolve, reject}};
-        resolveModule(spec);
+    const initialiseModule = function (spec) {
+        const {doc, id, path} = spec;
 
-        const doc = window.document;
-        const id = `module:${path.replace(/\//g, "-")}`;
         if (!(moduleRegister(path) || doc.getElementById(id))) {
-            doc.head.appendChild(moduleLoader(id, spec));
+            doc.head
+                .appendChild(
+                    moduleLoader(spec)
+                );
         }
+    };
+
+    const resolveModule = function _resolve(spec) {
+        const {path, promise} = spec;
+
+        if (!moduleRegister(path)) {
+            window.setTimeout(_resolve, 24, spec);
+            return spec;
+        }
+
+        promise.resolve(moduleRegister(path));
+        return spec;
+    };
+
+    const moduleSpecifier = function (spec) {
+        return Object.assign(
+            {
+                doc: window.document,
+                id: `module:${spec.path.replace(/\//g, "-")}`
+            },
+            spec
+        );
+    };
+
+    const moduleResolver = function (path, resolve, reject) {
+        initialiseModule(
+            resolveModule(
+                moduleSpecifier({path, promise: {resolve, reject}})
+            )
+        );
     };
 
     const _module = function (path) {
