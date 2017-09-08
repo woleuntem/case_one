@@ -30,11 +30,11 @@
     /*
     * define
     */
-    const registerResolver = function _registerResolver(spec) {
+    const resolveRegisteredModule = function _resolve(spec) {
         const {path, promise} = spec;
 
         if (!moduleRegister(path)) {
-            window.setTimeout(_registerResolver, 24, spec);
+            window.setTimeout(_resolve, 24, spec);
             return;
         }
 
@@ -45,7 +45,7 @@
         const script = window.document.createElement("script");
         script.addEventListener(
             "load",
-            partApply(registerResolver, spec)
+            partApply(resolveRegisteredModule, spec)
         );
         script.setAttribute("id", id);
         script.setAttribute("src", `${spec.path}.js`);
@@ -55,16 +55,16 @@
     const moduleResolver = function (path, resolve, reject) {
         const doc = window.document;
         const id = `module:${path.replace(/\//g, "-")}`;
-        const spec = Object.assign({path, promise: {resolve, reject}});
+        const spec = {path, promise: {resolve, reject}};
 
         if (doc.getElementById(id)) {
-            registerResolver(spec);
+            resolveRegisteredModule(spec);
         } else {
             doc.head.appendChild(moduleScript(id, spec));
         }
     };
 
-    const module = function (path) {
+    const _module = function (path) {
         return new Promise(partApply(moduleResolver, path));
     };
 
@@ -79,41 +79,53 @@
         }
 
         Promise
-            .all(modules.map(module))
+            .all(modules.map(_module))
             .then(partApply(requireResolver, loadedCallback));
     };
 
     /*
     * define
     */
-    /*
-    const _dependencies = function (_arguments) {
-        return _arguments.find((argument) => Array.isArray(argument))
+    const defineDependencies = function (args) {
+        return args.find((arg) => Array.isArray(arg))
                 || ["require", "exports", "module"];
     };
-    */
-    const _factory = function (factory) {
+
+    const defineFactory = function (factory) {
         return typeof factory === "function"
             ? factory()
             : factory;
     };
 
-    const _id = function (id) {
+    const defineId = function (id) {
         return typeof id === "string"
             ? id
             : window.document.currentScript
                 .getAttribute("src").replace(/\.js$/, "");
     };
 
-    const define = function (..._arguments) {
-        const id = _id(_arguments[0]);
-        const registered = moduleRegister(id);
-        if (registered) {
-            return registered;
+    const defineArguments = function (args) {
+        return {
+            dependencies: defineDependencies(args.slice(0, 2)),
+            factory: defineFactory(args.slice(-1)[0]),
+            id: defineId(args[0])
+        };
+    };
+
+    const defineResolver = function (factory, id) {
+        moduleRegister(id, factory);
+    };
+
+    const define = function (...args) {
+        const {dependencies, factory, id} = defineArguments(args);
+
+        if (moduleRegister(id)) {
+            return;
         }
 
-        //_dependencies(_arguments.slice(0, 2))
-        return moduleRegister(id, _factory(_arguments.slice(-1)[0]));
+        Promise
+            .all(dependencies)
+            .then(partApply(defineResolver, factory, id));
     };
 
     Object.defineProperty(
