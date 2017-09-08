@@ -6,10 +6,10 @@
 */
 
 // https://github.com/amdjs/amdjs-api/blob/master/AMD.md
-(function () {
+(function (win) {
     "use strict";
 
-    if (window.hasOwnProperty("define")) {
+    if (win.hasOwnProperty("define")) {
         return;
     }
 
@@ -22,44 +22,50 @@
             if (value !== undefined && !register.has(key)) {
                 register.set(key, value);
             }
+
             return register.get(key);
         },
-        new Map()
+        new Map([
+            ["exports", {}],
+            ["module", {}],
+            ["require", {}]
+        ])
     );
-
     /*
     * define
     */
-    const resolveRegisteredModule = function _resolve(spec) {
-        const {path, promise} = spec;
-
+    const resolveRegisteredModule = function _resolve({path, promise}) {
         if (!moduleRegister(path)) {
-            window.setTimeout(_resolve, 24, spec);
+            win.setTimeout(_resolve, 24, {path, promise});
             return;
         }
 
         promise.resolve(moduleRegister(path));
     };
 
-    const moduleScript = function (id, spec) {
-        const script = window.document.createElement("script");
+    const rejectModuleError = function (path, promise, e) {
+        promise.reject(moduleRegister(path, {e}));
+    };
+
+    const moduleScript = function (id, {path, promise}) {
+        const script = win.document.createElement("script");
         script.addEventListener(
-            "load",
-            partApply(resolveRegisteredModule, spec)
+            "error",
+            partApply(rejectModuleError, path, promise)
         );
         script.setAttribute("id", id);
-        script.setAttribute("src", `${spec.path}.js`);
+        script.setAttribute("src", `${path}.js`);
         return script;
     };
 
     const moduleResolver = function (path, resolve, reject) {
-        const doc = window.document;
+        const doc = win.document;
         const id = `module:${path.replace(/\//g, "-")}`;
         const spec = {path, promise: {resolve, reject}};
 
-        if (doc.getElementById(id)) {
-            resolveRegisteredModule(spec);
-        } else {
+        resolveRegisteredModule(spec);
+
+        if (!(moduleRegister(path) || doc.getElementById(id))) {
             doc.head.appendChild(moduleScript(id, spec));
         }
     };
@@ -69,7 +75,7 @@
     };
 
     const requireResolver = function (loadedCallback, modules) {
-        loadedCallback.apply(null, modules);
+        loadedCallback(...modules);
     };
 
     const require = function (modules, loadedCallback) {
@@ -80,7 +86,10 @@
 
         Promise
             .all(modules.map(_module))
-            .then(partApply(requireResolver, loadedCallback));
+            .then(partApply(requireResolver, loadedCallback))
+            .catch(function ({e}) {
+                win.console.log(e);
+            });
     };
 
     /*
@@ -91,41 +100,40 @@
                 || ["require", "exports", "module"];
     };
 
-    const defineFactory = function (factory) {
+    const defineFactoryInstantiate = function (factory, ...args) {
         return typeof factory === "function"
-            ? factory()
+            ? factory(...args)
             : factory;
     };
 
     const defineId = function (id) {
         return typeof id === "string"
             ? id
-            : window.document.currentScript
+            : win.document.currentScript
                 .getAttribute("src").replace(/\.js$/, "");
     };
 
     const defineArguments = function (args) {
         return {
             dependencies: defineDependencies(args.slice(0, 2)),
-            factory: defineFactory(args.slice(-1)[0]),
+            factory: args.slice(-1)[0]/*defineFactory(args.slice(-1)[0])*/,
             id: defineId(args[0])
         };
     };
 
-    const defineResolver = function (factory, id) {
-        moduleRegister(id, factory);
+    const defineRequireCallback = function (factory, id, ...args) {
+        moduleRegister(id, defineFactoryInstantiate(factory, ...args));
     };
 
     const define = function (...args) {
         const {dependencies, factory, id} = defineArguments(args);
 
-        if (moduleRegister(id)) {
-            return;
+        if (!moduleRegister(id)) {
+            require(
+                dependencies,
+                partApply(defineRequireCallback, factory, id)
+            );
         }
-
-        Promise
-            .all(dependencies)
-            .then(partApply(defineResolver, factory, id));
     };
 
     Object.defineProperty(
@@ -135,7 +143,7 @@
     );
 
     Object.defineProperties(
-        window,
+        win,
         {
             define: {
                 enumerable: true,
@@ -148,9 +156,24 @@
             }
         }
     );
-}());
+}(window));
+
+window.require(["./module2"], function (module2) {
+    "use strict";
+    window.console.log(module2);
+});
 
 window.require(["./module1"], function (module1) {
     "use strict";
     window.console.log(module1);
+});
+
+window.require(["./module1", "./module2"], function (module1, module2) {
+    "use strict";
+    window.console.log(module1, module2);
+});
+
+window.require(["./module1", "./module3"], function (module1, module3) {
+    "use strict";
+    window.console.log(module1, module3);
 });
