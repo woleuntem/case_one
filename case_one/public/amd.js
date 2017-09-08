@@ -116,7 +116,7 @@
     const defineArguments = function (args) {
         return {
             dependencies: defineDependencies(args.slice(0, 2)),
-            factory: args.slice(-1)[0]/*defineFactory(args.slice(-1)[0])*/,
+            factory: args.slice(-1)[0],
             id: defineId(args[0])
         };
     };
@@ -157,23 +157,3 @@
         }
     );
 }(window));
-
-window.require(["./module2"], function (module2) {
-    "use strict";
-    window.console.log(module2);
-});
-
-window.require(["./module1"], function (module1) {
-    "use strict";
-    window.console.log(module1);
-});
-
-window.require(["./module1", "./module2"], function (module1, module2) {
-    "use strict";
-    window.console.log(module1, module2);
-});
-
-window.require(["./module1", "./module3"], function (module1, module3) {
-    "use strict";
-    window.console.log(module1, module3);
-});
