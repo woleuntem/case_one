@@ -6,10 +6,10 @@
 */
 
 // https://github.com/amdjs/amdjs-api/blob/master/AMD.md
-(function (win) {
+(function (window) {
     "use strict";
 
-    if (win.hasOwnProperty("define")) {
+    if (window.hasOwnProperty("define")) {
         return;
     }
 
@@ -32,26 +32,26 @@
         ])
     );
     /*
-    * define
+    * require
     */
-    const resolveRegisteredModule = function _resolve({path, promise}) {
+    const resolveModule = function _resolve({path, promise}) {
         if (!moduleRegister(path)) {
-            win.setTimeout(_resolve, 24, {path, promise});
+            window.setTimeout(_resolve, 24, {path, promise});
             return;
         }
 
         promise.resolve(moduleRegister(path));
     };
 
-    const rejectModuleError = function (path, promise, e) {
+    const rejectModule = function (path, promise, e) {
         promise.reject(moduleRegister(path, {e}));
     };
 
-    const moduleScript = function (id, {path, promise}) {
-        const script = win.document.createElement("script");
+    const moduleLoader = function (id, {path, promise}) {
+        const script = window.document.createElement("script");
         script.addEventListener(
             "error",
-            partApply(rejectModuleError, path, promise)
+            partApply(rejectModule, path, promise)
         );
         script.setAttribute("id", id);
         script.setAttribute("src", `${path}.js`);
@@ -59,14 +59,14 @@
     };
 
     const moduleResolver = function (path, resolve, reject) {
-        const doc = win.document;
+        const doc = window.document;
         const id = `module:${path.replace(/\//g, "-")}`;
         const spec = {path, promise: {resolve, reject}};
 
-        resolveRegisteredModule(spec);
+        resolveModule(spec);
 
         if (!(moduleRegister(path) || doc.getElementById(id))) {
-            doc.head.appendChild(moduleScript(id, spec));
+            doc.head.appendChild(moduleLoader(id, spec));
         }
     };
 
@@ -88,9 +88,15 @@
             .all(modules.map(_module))
             .then(partApply(requireResolver, loadedCallback))
             .catch(function ({e}) {
-                win.console.log(e);
+                window.console.log(e);
             });
     };
+
+    Object.defineProperty(
+        window,
+        "require",
+        {enumerable: true, value: require}
+    );
 
     /*
     * define
@@ -109,7 +115,7 @@
     const defineId = function (id) {
         return typeof id === "string"
             ? id
-            : win.document.currentScript
+            : window.document.currentScript
                 .getAttribute("src").replace(/\.js$/, "");
     };
 
@@ -142,18 +148,9 @@
         {enumerable: true, value: {}}
     );
 
-    Object.defineProperties(
-        win,
-        {
-            define: {
-                enumerable: true,
-                value: define
-            },
-
-            require: {
-                enumerable: true,
-                value: require
-            }
-        }
+    Object.defineProperty(
+        window,
+        "define",
+        {enumerable: true, value: define}
     );
 }(window));
