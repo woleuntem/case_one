@@ -88,7 +88,9 @@
     const moduleResolver = function (path, resolve, reject) {
         initialiseModule(
             resolveModule(
-                moduleSpecifier({path, promise: {resolve, reject}})
+                moduleSpecifier(
+                    {path, promise: {resolve, reject}}
+                )
             )
         );
     };
