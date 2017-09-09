@@ -2,7 +2,7 @@
     browser es6 maxlen:80
 */
 /*global
-    Array Map Object Promise window
+    Array Error Map Object Promise window
 */
 
 // https://github.com/amdjs/amdjs-api/blob/master/AMD.md
@@ -36,7 +36,7 @@
     * require
     */
     const rejectModule = function (path, promise, e) {
-        promise.reject(moduleRegister(path, {e}));
+        promise.reject(moduleRegister(path, e.target));
     };
 
     const moduleLoader = function (spec) {
@@ -103,20 +103,22 @@
         loadedCallback(...modules);
     };
 
+    const requireErrorCatch = function (error) {
+        const stack = Error.prototype.isPrototypeOf(error)
+            ? error
+            : {
+                id: error.id.substring(7).replace("-", "/"),
+                src: error.src
+            };
+
+        window.console.error("Error::require", stack);
+    };
+
     const require = function (modules, loadedCallback) {
         Promise
             .all(Array.prototype.concat(modules).map(_module))
             .then(partApply(requireResolver, loadedCallback))
-            .catch(function ({e}) {
-                const target = e.target;
-                window.console.error(
-                    "Error::require",
-                    {
-                        id: target.id.substring(7).replace("-", "/"),
-                        src: target.src
-                    }
-                );
-            });
+            .catch(requireErrorCatch);
     };
 
     Object.defineProperty(
