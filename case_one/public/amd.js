@@ -6,6 +6,7 @@
 */
 
 // https://github.com/amdjs/amdjs-api/blob/master/AMD.md
+// http://wiki.commonjs.org/wiki/Modules/1.1
 (function (window) {
     "use strict";
 
@@ -27,14 +28,13 @@
         },
         new Map([
             ["exports", {}],
-            ["module", {}],
-            ["require", {}]
+            ["module", {}]
         ])
     );
+
     /*
     * require
     */
-
     const rejectModule = function (path, promise, e) {
         promise.reject(moduleRegister(path, {e}));
     };
@@ -104,23 +104,37 @@
     };
 
     const require = function (modules, loadedCallback) {
-        if (!Array.isArray(modules)) {
-            // throw
-            return;
-        }
-
         Promise
-            .all(modules.map(_module))
+            .all(Array.prototype.concat(modules).map(_module))
             .then(partApply(requireResolver, loadedCallback))
             .catch(function ({e}) {
-                window.console.log(e);
+                const target = e.target;
+                window.console.error(
+                    "Error::require",
+                    {
+                        id: target.id.substring(7).replace("-", "/"),
+                        src: target.src
+                    }
+                );
             });
     };
 
     Object.defineProperty(
+        require,
+        "paths",
+        {
+            enumerable: true,
+            value: []
+        }
+    );
+
+    Object.defineProperty(
         window,
         "require",
-        {enumerable: true, value: require}
+        {
+            enumerable: true,
+            value: moduleRegister("require", require)
+        }
     );
 
     /*
