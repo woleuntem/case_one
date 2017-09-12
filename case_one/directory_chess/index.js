@@ -51,7 +51,11 @@ const childDirectoriesReaddirResolver = function (resolve, dirItems) {
     resolve(dirItems.filter((item) => item !== null));
 };
 
-const childDirectoriesReaddirCallback = function (spec, ignore, dirItems) {
+const childDirectoriesReaddirCallback = function (spec, error, dirItems) {
+    if (error !== null) {
+        throw new Error(`${error.path}::${error.code}`);
+    }
+
     Promise.all(
         dirItems.map(
             partApply(
