@@ -112,7 +112,6 @@ const getBottomDirectories = async function _getBottomDirectories(path) {
     );
 };
 
-
 getBottomDirectories("./board")
     .then((dirs) => flatten(dirs))
     .then((dirs) => dirs.forEach((dir) => watch(dir)));
