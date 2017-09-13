@@ -15,6 +15,8 @@ const partApply = function (fn, ...fixed) {
 };
 
 const watch = function (path) {
+    console.log("watching", path);
+
     Fs.watch(path, function (eventType, filename) {
         console.log(path, eventType, filename);
     });
@@ -91,22 +93,25 @@ const getBottomDirectoriesResolver = function (spec, childDirectories) {
         ? spec.path
         : Promise.all(
             childDirectories
-                .map((dir) => spec.getBottomDirectories(dir))
+                .map((dir) => spec.caller(dir))
         );
 };
 
-const getBottomDirectories = function _getBottomDirectories(path) {
-    return getChildDirectories(path)
+const getBottomDirectories = async function _getBottomDirectories(path) {
+    /*return getChildDirectories(path)
         .then(
             partApply(
                 getBottomDirectoriesResolver,
-                {
-                    getBottomDirectories: _getBottomDirectories,
-                    path
-                }
+                {caller: _getBottomDirectories, path}
             )
         );
+    */
+    return getBottomDirectoriesResolver(
+        {caller: _getBottomDirectories, path},
+        await getChildDirectories(path)
+    );
 };
+
 
 getBottomDirectories("./board")
     .then((dirs) => flatten(dirs))
